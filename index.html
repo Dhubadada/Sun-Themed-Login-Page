@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integrated Sun Login</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Orbitron', sans-serif; /* A more futuristic font */
+            background-color: #e6a01f;
+            background-image: 
+                radial-gradient(white, rgba(255,255,255,0) 2px, transparent 40px),
+                radial-gradient(white, rgba(255,255,255,0) 1px, transparent 30px),
+                radial-gradient(white, rgba(255,255,255,0) 2px, transparent 40px),
+                radial-gradient(rgba(255,255,255,.4), rgba(255,255,255,0) 2px, transparent 30px);
+            background-size: 550px 550px, 350px 350px, 250px 250px, 150px 150px;
+            background-position: 0 0, 40px 60px, 130px 270px, 70px 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            animation: move-stars 200s linear infinite;
+        }
+
+        .login-wrapper {
+            position: relative;
+            width: 420px;
+            height: 420px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transform: scale(0);
+            opacity: 0;
+            animation: scaleIn 0.8s cubic-bezier(0.390, 0.575, 0.565, 1.000) forwards;
+            transition: transform 0.5s ease, opacity 0.5s ease;
+        }
+
+        .login-wrapper.hidden { transform: scale(0); opacity: 0; }
+
+        .sun-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            animation: sun-glow 4s ease-in-out infinite 0.8s;
+        }
+
+        .sun-body {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: radial-gradient(ellipse at center, #ffc107 0%, #ff9800 35%, #ff5722 65%, #c0392b 100%);
+            background-size: 200% 200%;
+            animation: 
+                spin 40s linear infinite 0.8s,
+                boiling-surface 10s ease-in-out infinite 0.8s;
+            overflow: hidden;
+        }
+        
+        .flare {
+            position: absolute; bottom: 50%; left: 50%; width: 100px; height: 200px; background: linear-gradient(to top, rgba(255, 152, 0, 0.8), transparent); border-radius: 50% 50% 0 0; transform-origin: bottom center; opacity: 0;
+        }
+        .flare-1 { animation: erupt 3s ease-in-out infinite 1.5s; transform: translateX(-50%) rotate(0deg); }
+        .flare-2 { animation: erupt 5s ease-in-out infinite 2s; transform: translateX(-50%) rotate(70deg); }
+        .flare-3 { animation: erupt 4s ease-in-out infinite 3s; transform: translateX(-50%) rotate(190deg); }
+        .flare-4 { animation: erupt 3.5s ease-in-out infinite 2.5s; transform: translateX(-50%) rotate(280deg); }
+
+        /* The form is now just a container for positioning */
+        .login-form {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+        }
+        
+        /* --- NEW: Circular Arc Input Design --- */
+        .input-arc-group {
+            position: absolute;
+            left: 50%;
+            width: 320px; /* Diameter of the arc path */
+            height: 320px;
+            transform: translateX(-50%);
+            opacity: 0;
+            animation: fadeInUp 0.5s ease forwards;
+        }
+
+        /* Staggered animation delays */
+        .input-arc-group.username { top: 0; animation-delay: 1.0s; }
+        .input-arc-group.password { bottom: 0; animation-delay: 1.2s; }
+        
+        /* The visible glowing arc path */
+        .arc-path {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 3px solid transparent; /* Initially transparent */
+            border-radius: 50%;
+            border-color: #ffc107;
+            box-shadow: 0 0 15px #ff9800, inset 0 0 15px #ff9800;
+            transition: all 0.3s ease;
+        }
+        
+        /* Using clip-path to show only half of the circle's border */
+        .input-arc-group.username .arc-path {
+            clip-path: polygon(0 0, 100% 0, 100% 50%, 0 50%); /* Top half */
+        }
+        .input-arc-group.password .arc-path {
+            clip-path: polygon(0 50%, 100% 50%, 100% 100%, 0 100%); /* Bottom half */
+        }
+
+        /* The actual <input> element is invisible, placed over the arc */
+        .arc-input {
+            width: 90%;
+            position: absolute;
+            left: 5%;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 1.2em;
+            text-align: center;
+            letter-spacing: 2px;
+            font-family: 'Orbitron', sans-serif;
+        }
+        .input-arc-group.username .arc-input { top: 35px; }
+        .input-arc-group.password .arc-input { bottom: 35px; }
+        .arc-input::placeholder { color: transparent; }
+
+        .arc-label {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: bold;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 5px #000;
+        }
+
+        .input-arc-group.username .arc-label { top: 40px; }
+        .input-arc-group.password .arc-label { bottom: 40px; }
+
+        /* Floating label effect for arcs */
+        .arc-input:focus + .arc-label,
+        .arc-input:not(:placeholder-shown) + .arc-label {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+        
+        /* When input is focused, make its arc glow brighter */
+        .arc-input:focus ~ .arc-path {
+            border-color: #fff;
+            box-shadow: 0 0 25px #ffeb3b, inset 0 0 25px #ffeb3b;
+            transform: scale(1.02);
+        }
+
+        /* --- NEW: Central "Go" Button --- */
+        .go-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90px;
+            height: 90px;
+            background: #ff9800;
+            border-radius: 50%;
+            border: 3px solid #ffeb3b;
+            color: #000;
+            font-weight: 700;
+            font-size: 1.5em;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            text-transform: uppercase;
+            box-shadow: 0 0 20px #ff5722;
+            opacity: 0;
+            animation: fadeInUp 0.5s ease forwards 1.4s,
+                       pulse-go 2s infinite 1.9s;
+            transition: all 0.3s ease;
+        }
+
+        .go-button:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            background: #ffc107;
+            box-shadow: 0 0 30px #ffeb3b;
+        }
+        
+        /* SUCCESS SUN PAGE STYLES */
+        #sun-page { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; justify-content: center; align-items: center; background-color: #000; opacity: 0; transition: opacity 1.5s ease; }
+        #sun-page.visible { display: flex; opacity: 1; }
+        .sun { width: 300px; height: 300px; background: radial-gradient(circle, #ffeb3b, #ffc107, #ff9800); border-radius: 50%; box-shadow: 0 0 60px #ffc107, 0 0 100px #ff9800, 0 0 150px #ff5722; animation: sun-shine 4s ease-in-out infinite; }
+
+        /* --- ANIMATION KEYFRAMES --- */
+        @keyframes scaleIn { to { transform: scale(1); opacity: 1; } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes sun-glow { 0%, 100% { box-shadow: 0 0 60px #ffc107, 0 0 100px #ff5722; } 50% { box-shadow: 0 0 80px #ffeb3b, 0 0 140px #ff9800; } }
+        @keyframes move-stars { from { background-position: 0 0, 40px 60px, 130px 270px, 70px 100px; } to { background-position: -550px -550px, -310px -490px, -380px -280px, -480px -400px; } }
+        @keyframes boiling-surface { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        @keyframes erupt { 0% { transform: scaleY(0) scaleX(0.5); opacity: 0; } 50% { transform: scaleY(1) scaleX(1); opacity: 1; } 100% { transform: scaleY(0) scaleX(0.5); opacity: 0; } }
+        @keyframes sun-shine { 0% { transform: scale(1); box-shadow: 0 0 60px #ffc107, 0 0 100px #ff9800, 0 0 150px #ff5722; } 50% { transform: scale(1.1); box-shadow: 0 0 80px #ffeb3b, 0 0 140px #ffc107, 0 0 200px #ff9800; } }
+        .login-wrapper.shake { animation: shake 0.5s ease-in-out; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); } 20%, 40%, 60%, 80% { transform: translateX(10px); } }
+        @keyframes pulse-go { 0%, 100% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.05); } }
+
+    </style>
+</head>
+<body>
+
+    <div class="login-wrapper">
+        <div class="sun-container">
+            <div class="sun-body">
+                <div class="flare flare-1"></div>
+                <div class="flare flare-2"></div>
+                <div class="flare flare-3"></div>
+                <div class="flare flare-4"></div>
+            </div>
+        </div>
+        
+        <form class="login-form">
+            <div class="input-arc-group username">
+                <input type="text" id="username" class="arc-input" required placeholder=" ">
+                <label for="username" class="arc-label">USER NAME</label>
+                <div class="arc-path"></div>
+            </div>
+            
+            <div class="input-arc-group password">
+                <input type="password" id="password" class="arc-input" required placeholder=" ">
+                <label for="password" class="arc-label">PASSWORD</label>
+                <div class="arc-path"></div>
+            </div>
+
+            <button type="submit" class="go-button">Go</button>
+        </form>
+    </div>
+
+    <div id="sun-page">
+        <div class="sun"></div>
+    </div>
+
+    <script>
+        // JavaScript logic remains the same, it works perfectly with the new structure.
+        const loginWrapper = document.querySelector('.login-wrapper');
+        const loginForm = document.querySelector('.login-form');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const sunPage = document.getElementById('sun-page');
+
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (usernameInput.value.trim() !== '' && passwordInput.value.trim() !== '') {
+                loginWrapper.classList.add('hidden');
+                setTimeout(() => {
+                    sunPage.classList.add('visible');
+                }, 500);
+            } else {
+                alert('Please fill in both User Name and Password.');
+                loginWrapper.classList.add('shake');
+                setTimeout(() => {
+                    loginWrapper.classList.remove('shake');
+                }, 500);
+            }
+        });
+    </script>
+</body>
+</html>
